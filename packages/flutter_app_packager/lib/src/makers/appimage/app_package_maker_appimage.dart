@@ -183,6 +183,14 @@ class AppPackageMakerAppImage extends AppPackageMaker {
         ),
       );
 
+      // Collect all unique shared library dependencies from all .so files first,
+      // then copy them in a single operation to avoid race conditions where
+      // multiple concurrent cp commands try to write the same file (e.g.
+      // libstdc++.so.6) to usr/lib/ simultaneously, causing "File exists" errors.
+      // Deduplicate by basename since ldd may return different paths for the
+      // same library (e.g. /lib/x86_64-linux-gnu/libstdc++.so.6 vs
+      // /usr/lib/x86_64-linux-gnu/libstdc++.so.6 when /lib -> /usr/lib).
+      final allReferencedSharedLibs = <String, String>{};
       await Future.wait(
         appSOLibs.map((so) async {
           final referencedSharedLibs =
@@ -192,25 +200,28 @@ class AppPackageMakerAppImage extends AppPackageMaker {
                 (lib) => lib.contains('libflutter_linux_gtk.so'),
               ),
           );
-
-          if (referencedSharedLibs.isEmpty) return;
-
-          await $(
-            'cp',
-            [
-              ...referencedSharedLibs,
-              path.join(
-                makeConfig.packagingDirectory.path,
-                '${makeConfig.appName}.AppDir/usr/lib',
-              ),
-            ],
-          ).then((value) {
-            if (value.exitCode != 0) {
-              throw MakeError(value.stderr as String);
-            }
-          });
+          for (final lib in referencedSharedLibs) {
+            allReferencedSharedLibs.putIfAbsent(path.basename(lib), () => lib);
+          }
         }),
       );
+
+      if (allReferencedSharedLibs.isNotEmpty) {
+        await $(
+          'cp',
+          [
+            ...allReferencedSharedLibs.values,
+            path.join(
+              makeConfig.packagingDirectory.path,
+              '${makeConfig.appName}.AppDir/usr/lib',
+            ),
+          ],
+        ).then((value) {
+          if (value.exitCode != 0) {
+            throw MakeError(value.stderr as String);
+          }
+        });
+      }
 
       await Future.wait(
         makeConfig.include.map((so) async {
