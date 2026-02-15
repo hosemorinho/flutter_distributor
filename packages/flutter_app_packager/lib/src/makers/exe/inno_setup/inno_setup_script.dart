@@ -103,7 +103,9 @@ class InnoSetupScript {
       'SOURCE_DIR': makeConfig.sourceDir,
       'OUTPUT_BASE_FILENAME': makeConfig.outputBaseFileName,
       'LOCALES': makeConfig.locales,
-      'SETUP_ICON_FILE': makeConfig.setupIconFile ?? '',
+      'SETUP_ICON_FILE': makeConfig.setupIconFile != null
+          ? File(makeConfig.setupIconFile!).absolute.path
+          : '',
       'PRIVILEGES_REQUIRED': makeConfig.privilegesRequired ?? 'none',
     }..removeWhere((key, value) => value == null);
 
