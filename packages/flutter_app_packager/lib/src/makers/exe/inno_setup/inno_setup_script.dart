@@ -26,6 +26,81 @@ PrivilegesRequired={{PRIVILEGES_REQUIRED}}
 ArchitecturesAllowed={{ARCH}}
 ArchitecturesInstallIn64BitMode={{ARCH}}
 
+[Code]
+function IsArm64(): Boolean;
+begin
+  Result := (ProcessorArchitecture = paARM64);
+end;
+
+procedure DeleteFirewallRule(const RuleName: String);
+var
+  ResultCode: Integer;
+begin
+  Exec('netsh', 'advfirewall firewall delete rule name="' + RuleName + '"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  if ResultCode <> 0 then
+    Log('Firewall cleanup skipped for rule "' + RuleName + '", netsh exit code=' + IntToStr(ResultCode))
+  else
+    Log('Firewall cleanup succeeded for rule "' + RuleName + '"');
+end;
+
+procedure AddFirewallRule(const RuleName, ExePath, Description: String);
+var
+  ResultCode: Integer;
+begin
+  Exec('netsh', 'advfirewall firewall add rule name="' + RuleName + '" dir=in action=allow program="' + ExePath + '" enable=yes profile=any description="' + Description + '"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  if ResultCode <> 0 then
+    Log('Firewall rule add failed for rule "' + RuleName + '", netsh exit code=' + IntToStr(ResultCode))
+  else
+    Log('Firewall rule add succeeded for rule "' + RuleName + '"');
+end;
+
+procedure ConfigureFirewall;
+var
+  AppDir: String;
+  DisplayName: String;
+  MainExe: String;
+  CoreExe: String;
+  HelperExe: String;
+begin
+  AppDir := ExpandConstant('{app}');
+  DisplayName := '{{DISPLAY_NAME}}';
+  MainExe := AppDir + '\{{EXECUTABLE_NAME}}';
+  CoreExe := AppDir + '\{{APP_NAME}}Core.exe';
+  HelperExe := AppDir + '\{{APP_NAME}}HelperService.exe';
+
+  DeleteFirewallRule(DisplayName);
+  DeleteFirewallRule('{{APP_NAME}}Core.exe');
+  DeleteFirewallRule('{{APP_NAME}}HelperService.exe');
+
+  if FileExists(MainExe) then
+    AddFirewallRule(DisplayName, MainExe, 'Allow ' + DisplayName + ' main program inbound connections');
+
+  if FileExists(CoreExe) then
+    AddFirewallRule('{{APP_NAME}}Core.exe', CoreExe, 'Allow ' + DisplayName + ' core program network connections');
+
+  if FileExists(HelperExe) then
+    AddFirewallRule('{{APP_NAME}}HelperService.exe', HelperExe, 'Allow ' + DisplayName + ' helper service network connections');
+end;
+
+procedure RemoveFirewallRules;
+begin
+  DeleteFirewallRule('{{DISPLAY_NAME}}');
+  DeleteFirewallRule('{{APP_NAME}}Core.exe');
+  DeleteFirewallRule('{{APP_NAME}}HelperService.exe');
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssPostInstall then
+    ConfigureFirewall;
+end;
+
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+begin
+  if CurUninstallStep = usUninstall then
+    RemoveFirewallRules;
+end;
+
 [Languages]
 {% for locale in LOCALES %}
 {% if locale.lang == 'en' %}Name: "english"; MessagesFile: "compiler:Default.isl"{% endif %}
