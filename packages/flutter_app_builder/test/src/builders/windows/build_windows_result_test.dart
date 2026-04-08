@@ -30,6 +30,24 @@ void main() {
       r.flutterVersion = const FlutterVersion(flutterVersion: '3.16.0');
       expect(r.outputDirectory.path, 'build/windows/x64/runner/Release');
     });
+    test('release mode (windows-arm64 target-platform)', () {
+      final r = BuildWindowsResult(
+        BuildConfig(
+          arguments: {'target-platform': 'windows-arm64'},
+        ),
+      );
+      r.flutterVersion = const FlutterVersion(flutterVersion: '3.16.0');
+      expect(r.outputDirectory.path, 'build/windows/arm64/runner/Release');
+    });
+    test('release mode (windows-x64 target-platform)', () {
+      final r = BuildWindowsResult(
+        BuildConfig(
+          arguments: {'target-platform': 'windows-x64'},
+        ),
+      );
+      r.flutterVersion = const FlutterVersion(flutterVersion: '3.16.0');
+      expect(r.outputDirectory.path, 'build/windows/x64/runner/Release');
+    });
     test('release mode (less 3.15.0)', () {
       final r = BuildWindowsResult(
         BuildConfig(),
