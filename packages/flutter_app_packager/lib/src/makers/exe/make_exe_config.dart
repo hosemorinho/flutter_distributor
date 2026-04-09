@@ -44,6 +44,7 @@ class MakeExeConfig extends MakeConfig {
       executableName: json['executable_name'],
       displayName: json['display_name'],
       publisherName: json['publisher_name'] ?? json['appPublisher'],
+      publisherUrl: json['publisher_url'],
 
       createDesktopIcon: json['create_desktop_icon'],
       launchAtStartup: json['launch_at_startup'],
