@@ -10,7 +10,7 @@ dependencies:
   archive: ^3.4.10
   crypto: ^3.0.3
   io: ^1.0.3
-  liquid_engine: ^0.3.0
+  liquid_engine: ^0.2.2
 
   msix: ^3.16.6
   mustache_template: ^2.0.0
