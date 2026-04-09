@@ -8,8 +8,9 @@ environment:
 
 dependencies:
   archive: ^3.4.10
+  crypto: ^3.0.3
   io: ^1.0.3
-  liquid_engine: ^0.2.2
+
   msix: ^3.16.6
   mustache_template: ^2.0.0
   path: ^1.8.1
@@ -20,3 +21,4 @@ dependencies:
 
 dev_dependencies:
   dependency_validator: ^3.0.0
+  test: ^1.23.1
