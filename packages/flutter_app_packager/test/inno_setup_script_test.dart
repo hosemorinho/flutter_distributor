@@ -75,5 +75,50 @@ void main() {
       expect(content, isNot(contains('{cmd}')));
       expect(content, isNot(contains('/C')));
     });
+
+    test('generated .iss falls back to app-name-based default install dir', () async {
+      final config = createTestConfig()
+        ..installDirName = null
+        ..artifactName = '${createTestConfig().appName}-1.0.0-windows-setup.exe';
+      final innoScript = InnoSetupScript.fromMakeConfig(config);
+      final scriptFile = await innoScript.createFile();
+      final content = await scriptFile.readAsString();
+
+      expect(content, contains('DefaultDirName=${config.defaultInstallDirName}'));
+      expect(content, isNot(contains(r'DefaultDirName={autopf64}\Orange')));
+    });
+
+    test('MakeExeConfig generates deterministic app id when yaml omits app_id', () {
+      MakeExeConfig buildConfig(Map<String, dynamic> json) {
+        return MakeExeConfig.fromJson(json)
+          ..buildMode = 'release'
+          ..buildOutputDirectory = Directory.current
+          ..buildOutputFiles = <File>[]
+          ..platform = 'windows'
+          ..packageFormat = 'exe'
+          ..outputDirectory = Directory.current;
+      }
+
+      final orangeConfig = buildConfig({
+        'script_template': 'inno_setup.iss',
+        'display_name': 'Orange',
+        'executable_name': 'Orange.exe',
+        'publisher_name': 'hosemorinho',
+        'publisher_url': 'https://github.com/hosemorinho/Orange',
+      });
+      final orangeConfigAgain = buildConfig({
+        'display_name': 'Orange',
+      });
+      final flClashConfig = buildConfig({
+        'display_name': 'FlClash',
+      });
+
+      expect(
+        orangeConfig.appId,
+        matches(RegExp(r'^[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}$')),
+      );
+      expect(orangeConfig.appId, equals(orangeConfigAgain.appId));
+      expect(orangeConfig.appId, isNot(equals(flClashConfig.appId)));
+    });
   });
 }
