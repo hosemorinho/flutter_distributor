@@ -219,6 +219,20 @@ class MakeRpmConfigLoader extends DefaultMakeConfigLoader {
     final map = loadMakeConfigYaml(
       '$platform/packaging/$packageFormat/make_config.yaml',
     );
+    // Auto-detect build_arch if not specified
+    if (map['build_arch'] == null) {
+      map['build_arch'] = _getArchitecture();
+    }
     return MakeRPMConfig.fromJson(map).copyWith(baseMakeConfig);
+  }
+
+  String _getArchitecture() {
+    final result = Process.runSync('uname', ['-m']);
+    final arch = '${result.stdout}'.trim();
+    if (arch == 'aarch64') {
+      return 'aarch64';
+    } else {
+      return 'x86_64';
+    }
   }
 }
